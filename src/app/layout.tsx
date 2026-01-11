@@ -3,7 +3,7 @@ import { Outfit } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
-import ClerkProvider from "@/services/clerk/ClerkProvider"
+import { ClerkProvider } from "@/services/clerk/ClerkProvider"
 
 const outfitSans = Outfit({
   variable: "--font-outfit-sans",
