@@ -12,7 +12,7 @@ import { canCreateInterview } from "./permissions"
 import { PLAN_LIMIT_MESSAGE, RATE_LIMIT_MESSAGE } from "@/lib/errorToast"
 import { env } from "@/data/env/server"
 import arcjet, { tokenBucket, request } from "@arcjet/next"
-// import { generateAiInterviewFeedback } from "@/services/ai/interviews"
+import { generateAiInterviewFeedback } from "@/services/ai/interviews"
 
 const aj = arcjet({
   characteristics: ["userId"],
@@ -40,13 +40,15 @@ export async function createInterview({
     }
   }
 
-  // if (!(await canCreateInterview())) {
-  //   return {
-  //     error: true,
-  //     message: PLAN_LIMIT_MESSAGE,
-  //   }
-  // }
+  // Check plan limits
+  if (!(await canCreateInterview())) {
+    return {
+      error: true,
+      message: PLAN_LIMIT_MESSAGE,
+    }
+  }
 
+  // Rate limiting
   const decision = await aj.protect(await request(), {
     userId,
     requested: 1,
@@ -124,20 +126,20 @@ export async function generateInterviewFeedback(interviewId: string) {
     }
   }
 
-  // const feedback = await generateAiInterviewFeedback({
-  //   humeChatId: interview.humeChatId,
-  //   jobInfo: interview.jobInfo,
-  //   userName: user.name,
-  // })
+  const feedback = await generateAiInterviewFeedback({
+    humeChatId: interview.humeChatId,
+    jobInfo: interview.jobInfo,
+    userName: user.name,
+  })
 
-  // if (feedback == null) {
-  //   return {
-  //     error: true,
-  //     message: "Failed to generate feedback",
-  //   }
-  // }
+  if (feedback == null) {
+    return {
+      error: true,
+      message: "Failed to generate feedback",
+    }
+  }
 
-  // await updateInterviewDb(interviewId, { feedback })
+  await updateInterviewDb(interviewId, { feedback })
 
   return { error: false }
 }

@@ -1,24 +1,22 @@
 import { db } from "@/drizzle/db"
 import { JobInfoTable } from "@/drizzle/schema"
 import { getJobInfoIdTag } from "@/features/jobInfos/dbCache"
+import { canCreateQuestion } from "@/features/questions/permissions"
 import { getCurrentUser } from "@/services/clerk/lib/getCurrentUser"
 import { and, eq } from "drizzle-orm"
 import { Loader2Icon } from "lucide-react"
 import { cacheTag } from "next/dist/server/use-cache/cache-tag"
 import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
-import { fetchAccessToken } from "hume"
-import { env } from "@/data/env/server"
-import { VoiceProvider } from "@humeai/voice-react"
-import { StartCall } from "./_StartCall"
-import { canCreateInterview } from "@/features/interviews/permissions"
+import { NewQuestionClientPage } from "./_NewQuestionClientPage"
 
-export default async function NewInterviewPage({
+export default async function QuestionsPage({
   params,
 }: {
   params: Promise<{ jobInfoId: string }>
 }) {
   const { jobInfoId } = await params
+
   return (
     <Suspense
       fallback={
@@ -33,26 +31,15 @@ export default async function NewInterviewPage({
 }
 
 async function SuspendedComponent({ jobInfoId }: { jobInfoId: string }) {
-  const { userId, redirectToSignIn, user } = await getCurrentUser({
-    allData: true,
-  })
-  if (userId == null || user == null) return redirectToSignIn()
+  const { userId, redirectToSignIn } = await getCurrentUser()
+  if (userId == null) return redirectToSignIn()
 
-  console.log("---------------------------------")
-  if (!(await canCreateInterview())) return redirect("/app/upgrade")
+  if (!(await canCreateQuestion())) return redirect("/app/upgrade")
+
   const jobInfo = await getJobInfo(jobInfoId, userId)
   if (jobInfo == null) return notFound()
 
-  const accessToken = await fetchAccessToken({
-    apiKey: env.HUME_API_KEY,
-    secretKey: env.HUME_SECRET_KEY,
-  })
-
-  return (
-    <VoiceProvider>
-      <StartCall jobInfo={jobInfo} user={user} accessToken={accessToken} />
-    </VoiceProvider>
-  )
+  return <NewQuestionClientPage jobInfo={jobInfo} />
 }
 
 async function getJobInfo(id: string, userId: string) {
